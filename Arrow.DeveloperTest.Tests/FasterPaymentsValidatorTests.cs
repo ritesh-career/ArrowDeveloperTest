@@ -50,7 +50,7 @@ namespace Arrow.DeveloperTest.Tests
         }
 
         [TestMethod]
-        public void IsPaymentValid_WhenAccountIsFasterPayments_And_PaymentScheme_IsNot_FasterPayments_ReturnsFalse()
+        public void IsPaymentValid_WhenAccount_DoesNotSupport_FasterPayments_And_PaymentSchemeSelected_Is_FasterPayments_ReturnsFalse()
         {
             // Arrange
             var account = new Account { AllowedPaymentSchemes = AllowedPaymentSchemes.Bacs, Balance = 20 };
