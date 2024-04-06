@@ -3,8 +3,8 @@ using Arrow.DeveloperTest.Services;
 using Arrow.DeveloperTest.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Arrow.DeveloperTest.Tests
