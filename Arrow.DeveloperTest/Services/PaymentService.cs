@@ -1,71 +1,42 @@
-﻿using Arrow.DeveloperTest.Data;
+﻿using Arrow.DeveloperTest.Exceptions;
 using Arrow.DeveloperTest.Types;
-using System.Configuration;
+using Arrow.DeveloperTest.Validators;
 
 namespace Arrow.DeveloperTest.Services
 {
     public class PaymentService : IPaymentService
     {
+        private readonly IAccountService _accountService;
+        private readonly IPaymentSchemeValidatorFactory _paymentSchemeValidatorFactory;
+
+        public PaymentService(IAccountService accountService, IPaymentSchemeValidatorFactory paymentSchemeValidatorFactory)
+        {
+            _accountService = accountService;
+            _paymentSchemeValidatorFactory = paymentSchemeValidatorFactory;
+        }
+
         public MakePaymentResult MakePayment(MakePaymentRequest request)
         {
-            var accountDataStoreGetData = new AccountDataStore();
-            Account account = accountDataStoreGetData.GetAccount(request.DebtorAccountNumber);
+            var result = new MakePaymentResult() { Success = false };
             
-            var result = new MakePaymentResult();
+            var account = _accountService.GetAccount(request.DebtorAccountNumber);
 
-            switch (request.PaymentScheme)
+            if (account == null)
             {
-                case PaymentScheme.Bacs:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Bacs))
-                    {
-                        result.Success = false;
-                    }
-                    break;
-
-                case PaymentScheme.FasterPayments:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Balance < request.Amount)
-                    {
-                        result.Success = false;
-                    }
-                    break;
-
-                case PaymentScheme.Chaps:
-                    if (account == null)
-                    {
-                        result.Success = false;
-                    }
-                    else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
-                    {
-                        result.Success = false;
-                    }
-                    else if (account.Status != AccountStatus.Live)
-                    {
-                        result.Success = false;
-                    }
-                    break;
+                throw new AccountNotFoundException($"Account {request.DebtorAccountNumber} not found.");
             }
+            
+            var paymentSchemeValidator = _paymentSchemeValidatorFactory.GetPaymentSchemeValidator(request.PaymentScheme);
+            
+            if (!paymentSchemeValidator.IsPaymentValid(account, request))
+            {                
+                return result;
+            }            
 
-            if (result.Success)
-            {
-                account.Balance -= request.Amount;
+            _accountService.UpdateAccount(account, request.Amount);
 
-                var accountDataStoreUpdateData = new AccountDataStore();
-                accountDataStoreUpdateData.UpdateAccount(account);
-            }
-
-            return result;
+            result.Success = true;
+            return result; 
         }
     }
 }
